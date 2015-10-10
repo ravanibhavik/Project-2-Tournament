@@ -1,8 +1,9 @@
--- Create Database. Drop database if already exist so file can be used rerun.
+-- Create Database. Drop database if already exist so that we can rerun this file
+-- without any error.
 drop database if exists tournament;
 create database tournament;
 
--- Connect to Database
+-- Connect to newly created database tournament
 \c tournament;
 
 -- Create Tournament table which holds information like player name, no of matches played,
