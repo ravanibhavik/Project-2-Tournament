@@ -16,11 +16,11 @@ def deleteMatches():
     try:
         conn = connect()
         cur = conn.cursor()
-        cur.execute("update tournament "
-                    "set matches_played = 0, "
-                    "wins = 0, "
-                    "losses = 0, "
-                    "points = 0")
+        cur.execute("UPDATE MATCHES "
+                    "SET MATCHES_PLAYED = 0, "
+                    "WINS = 0, "
+                    "LOSSES = 0, "
+                    "POINTS = 0")
         conn.commit()
 
     except psycopg2.DatabaseError as de:
@@ -28,7 +28,6 @@ def deleteMatches():
 
     finally:
         conn.close()
-
 
 
 def deletePlayers():
@@ -36,7 +35,8 @@ def deletePlayers():
     try:
         conn = connect()
         cur = conn.cursor()
-        cur.execute("delete from tournament")
+        cur.execute("DELETE FROM MATCHES")
+        cur.execute("DELETE FROM PLAYERS")
         conn.commit()
 
     except psycopg2.DatabaseError as de:
@@ -45,12 +45,13 @@ def deletePlayers():
     finally:
         conn.close()
 
+
 def countPlayers():
     """Returns the number of players currently registered."""
     try:
         conn = connect()
         cur = conn.cursor()
-        sql = "select count(*) from tournament"
+        sql = "SELECT COUNT(*) FROM PLAYERS"
         cur.execute(sql)
         player_count = cur.fetchone()
         conn.commit()
@@ -76,9 +77,15 @@ def registerPlayer(name):
     try:
         conn = connect()
         cur = conn.cursor()
-        sql = "insert into tournament (player_name, matches_played, wins, losses, points)" \
-              "values (%s , 0, 0, 0, 0)"
+        sql = "INSERT INTO PLAYERS (PLAYER_NAME)" \
+              "VALUES (%s)"
         cur.execute(sql, (name,))
+        sql = "SELECT ID FROM PLAYERS WHERE PLAYER_NAME = %s"
+        cur.execute(sql, (name,))
+        player = cur.fetchone()
+        sql = "INSERT INTO MATCHES (ID, MATCHES_PLAYED, WINS, LOSSES, POINTS) " \
+              "VALUES (%s, 0, 0, 0, 0)"
+        cur.execute(sql, player)
         conn.commit()
 
     except psycopg2.DatabaseError as e:
@@ -105,20 +112,24 @@ def playerStandings():
     try:
         conn = connect()
         cur = conn.cursor()
-        sql = "select id, player_name, wins, matches_played " \
-              "from tournament " \
-              "order by wins desc"
+        sql = "SELECT M.ID, P.PLAYER_NAME, M.WINS, M.MATCHES_PLAYED " \
+              "FROM MATCHES AS M, PLAYERS AS P " \
+              "WHERE M.ID = P.ID " \
+              "ORDER BY M.WINS DESC" \
+
         cur.execute(sql)
         result = cur.fetchall()
         conn.commit()
 
     except psycopg2.DatabaseError as de:
         print("Database Error: " + str(de))
+        result = (None, None, None, None)
 
     finally:
         conn.close()
 
     return result
+
 
 
 def reportMatch(winner, loser):
@@ -131,16 +142,16 @@ def reportMatch(winner, loser):
     try:
         conn = connect()
         cur = conn.cursor()
-        sql = "update tournament " \
-              "set matches_played = matches_played + 1, " \
-              "wins = wins + 1, "  \
-              "points = points + 3" \
-              "where id = %s"
+        sql = "UPDATE MATCHES " \
+              "SET MATCHES_PLAYED = MATCHES_PLAYED + 1, " \
+              "WINS = WINS + 1, "  \
+              "POINTS = POINTS + 3" \
+              "WHERE ID = %s"
         cur.execute(sql, (winner,))
-        sql = "update tournament " \
-              "set matches_played = matches_played + 1, " \
-              "losses = losses + 1" \
-              "where id = %s"
+        sql = "UPDATE MATCHES " \
+              "SET MATCHES_PLAYED = MATCHES_PLAYED + 1, " \
+              "LOSSES = LOSSES + 1" \
+              "WHERE ID = %s"
         cur.execute(sql, (loser,))
         conn.commit()
 
@@ -170,8 +181,10 @@ def swissPairings():
     try:
         conn = connect()
         cur = conn.cursor()
-        sql = "select id, player_name from " \
-              "tournament order by wins desc"
+        sql = "SELECT M.ID, P.PLAYER_NAME FROM " \
+              "PLAYERS AS P, MATCHES AS M " \
+              "WHERE M.ID = P.ID " \
+              "ORDER BY WINS DESC"
         cur.execute(sql)
         sql_result = cur.fetchall()
         len_result = len(sql_result)
@@ -182,8 +195,13 @@ def swissPairings():
 
     except psycopg2.DatabaseError as de:
         print("Database Error: " + de)
+        pairs = []
 
     finally:
         conn.close()
 
     return pairs
+
+if __name__ == '__main__':
+    reportMatch(12, 14)
+    reportMatch(13, 15)

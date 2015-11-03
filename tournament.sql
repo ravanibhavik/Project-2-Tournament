@@ -6,11 +6,17 @@ create database tournament;
 -- Connect to newly created database tournament
 \c tournament;
 
--- Create Tournament table which holds information like player name, no of matches played,
--- matches won, lost and points earned (considering 3 points per match won)
+-- Create players table for player id and name
 
-create table tournament
-(id serial primary key, player_name varchar(30), matches_played int,
-wins int, losses int, points int);
+create table players
+(id serial primary key, player_name varchar(30));
+
+-- Create matches table for no of matches played, won, lost
+-- and total points earned by player
+
+create table matches
+(id integer REFERENCES players(id) UNIQUE, matches_played int, wins int, losses int, points int);
+
+\q
 
 
